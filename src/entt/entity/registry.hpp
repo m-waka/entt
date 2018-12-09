@@ -178,19 +178,6 @@ public:
     /*! @brief Type of sink for the given component. */
     using sink_type = typename component_signal_type::sink_type;
 
-    /*! @brief Default constructor. */
-    registry() ENTT_NOEXCEPT = default;
-
-    /*! @brief Copying a registry isn't allowed. */
-    registry(const registry &) = delete;
-    /*! @brief Default move constructor. */
-    registry(registry &&) = default;
-
-    /*! @brief Copying a registry isn't allowed. @return This registry. */
-    registry & operator=(const registry &) = delete;
-    /*! @brief Default move assignment operator. @return This registry. */
-    registry & operator=(registry &&) = default;
-
     /**
      * @brief Returns the numeric identifier of a type of component at runtime.
      *
@@ -206,6 +193,45 @@ public:
     template<typename Component>
     static component_type type() ENTT_NOEXCEPT {
         return component_family::type<Component>;
+    }
+
+    /*! @brief Default constructor. */
+    registry() ENTT_NOEXCEPT = default;
+
+    /*! @brief Copying a registry isn't allowed. */
+    registry(const registry &) = delete;
+    /*! @brief Default move constructor. */
+    registry(registry &&) = default;
+
+    /*! @brief Copying a registry isn't allowed. @return This registry. */
+    registry & operator=(const registry &) = delete;
+    /*! @brief Default move assignment operator. @return This registry. */
+    registry & operator=(registry &&) = default;
+
+    /**
+     * @brief TODO
+     *
+     * TODO
+     *
+     * @tparam Component TODO
+     * @param reg TODO
+     */
+    template<typename... Component>
+    void clone(const registry &reg) {
+        *this = {};
+
+        (assure<Component>(), ...);
+        (reserve<Component>(reg.size<Component>()), ...);
+
+        (std::copy(reg.raw<Component>(), reg.raw<Component>() + reg.size<Component>(), pool<Component>().raw()), ...);
+        (std::for_each(reg.data<Component>(), reg.data<Component>() + reg.size<Component>(), [cpool = pools[component_family::type<Component>].get()](const auto entity) {
+            cpool->construct(entity);
+        }), ...);
+
+        next = reg.next;
+        available = reg.available;
+        entities.resize(reg.entities.size());
+        std::copy(reg.entities.cbegin(), reg.entities.cend(), entities.begin());
     }
 
     /**

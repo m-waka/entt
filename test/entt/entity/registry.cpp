@@ -781,6 +781,12 @@ TEST(Registry, Clone) {
     entt::registry<> registry;
     entt::registry<> other;
 
+    const auto entity = other.create();
+    other.assign<int>(entity, 42);
+    other.assign<char>(entity, 'c');
+
+    registry.destroy(registry.create());
+
     const auto e0 = registry.create();
     registry.assign<int>(e0, 0);
     registry.assign<double>(e0, 0.0);
@@ -797,5 +803,16 @@ TEST(Registry, Clone) {
     registry.destroy(e1);
     other.clone<int, char>(registry);
 
-    // TODO should I reset the dst registry?
+    ASSERT_FALSE(other.valid(entity));
+    ASSERT_TRUE(other.valid(e0));
+    ASSERT_FALSE(other.valid(e1));
+    ASSERT_TRUE(other.valid(e2));
+
+    ASSERT_TRUE((other.has<int>(e0)));
+    ASSERT_FALSE((other.has<double>(e0)));
+    ASSERT_TRUE((other.has<int, char>(e2)));
+
+    ASSERT_EQ(other.get<int>(e0), 0);
+    ASSERT_EQ(other.get<int>(e2), 2);
+    ASSERT_EQ(other.get<char>(e2), '2');
 }

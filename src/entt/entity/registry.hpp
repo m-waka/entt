@@ -209,32 +209,6 @@ public:
     registry & operator=(registry &&) = default;
 
     /**
-     * @brief TODO
-     *
-     * TODO
-     *
-     * @tparam Component TODO
-     * @param reg TODO
-     */
-    template<typename... Component>
-    void clone(const registry &reg) {
-        *this = {};
-
-        (assure<Component>(), ...);
-        (reserve<Component>(reg.size<Component>()), ...);
-
-        (std::copy(reg.raw<Component>(), reg.raw<Component>() + reg.size<Component>(), pool<Component>().raw()), ...);
-        (std::for_each(reg.data<Component>(), reg.data<Component>() + reg.size<Component>(), [cpool = pools[component_family::type<Component>].get()](const auto entity) {
-            cpool->construct(entity);
-        }), ...);
-
-        next = reg.next;
-        available = reg.available;
-        entities.resize(reg.entities.size());
-        std::copy(reg.entities.cbegin(), reg.entities.cend(), entities.begin());
-    }
-
-    /**
      * @brief Returns the number of existing components of the given type.
      * @tparam Component Type of component of which to return the size.
      * @return Number of existing components of the given type.
@@ -1428,6 +1402,42 @@ public:
         });
 
         return { std::move(set) };
+    }
+
+    /**
+     * @brief Clones the given components and all the entity identifiers.
+     *
+     * The components must be copiable for obvious reasons. The entities
+     * maintain their versions once copied.
+     *
+     * @note
+     * There isn't an efficient way to know if all entities are assigned at
+     * least one component once copied. Therefore, there may be orphans. It is
+     * up to the caller to clean up the registry if necessary.
+     *
+     * @warning
+     * This function requires that the registry be empty. In case it isn't, all
+     * the data will be automatically deleted beforehand.
+     *
+     * @tparam Component Types of components to clone.
+     * @param reg A valid reference to a source registry.
+     */
+    template<typename... Component>
+    void clone(const registry &reg) {
+        *this = {};
+
+        (assure<Component>(), ...);
+        (reserve<Component>(reg.size<Component>()), ...);
+
+        (std::copy(reg.raw<Component>(), reg.raw<Component>() + reg.size<Component>(), pool<Component>().raw()), ...);
+        (std::for_each(reg.data<Component>(), reg.data<Component>() + reg.size<Component>(), [this](const auto entity) {
+            pools[component_family::type<Component>]->construct(entity);
+        }), ...);
+
+        next = reg.next;
+        available = reg.available;
+        entities.resize(reg.entities.size());
+        std::copy(reg.entities.cbegin(), reg.entities.cend(), entities.begin());
     }
 
     /**

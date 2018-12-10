@@ -120,6 +120,7 @@ export(EXPORT EnTTTargets FILE ${EnTT_BINARY_DIR}/EnTTTargets.cmake)
 install(
     EXPORT EnTTTargets
     FILE EnTTTargets.cmake
+    NAMESPACE ${PROJECT_NAME}::
     DESTINATION ${CUSTOM_INSTALL_CONFIGDIR}
 )
 
@@ -156,6 +157,8 @@ install(
 )
 
 export(PACKAGE EnTT)
+
+add_library(${PROJECT_NAME}::EnTT ALIAS EnTT)
 
 #
 # Tests

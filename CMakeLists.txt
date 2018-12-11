@@ -34,34 +34,6 @@ message("* ${PROJECT_NAME} v${PROJECT_VERSION} (${CMAKE_BUILD_TYPE})")
 message("* Copyright (c) 2017-2018 ${PROJECT_AUTHOR} <${PROJECT_AUTHOR_EMAIL}>")
 message("*")
 
-option(USE_LIBCPP "Use libc++ by adding -stdlib=libc++ flag if availbale." ON)
-option(USE_ASAN "Use address sanitizer by adding -fsanitize=address -fno-omit-frame-pointer flags" OFF)
-option(USE_COMPILE_OPTIONS "Use compile options from EnTT." ON)
-
-#
-# Compiler stuff
-#
-
-if(NOT MSVC AND USE_LIBCPP)
-    include(CheckCXXSourceCompiles)
-    include(CMakePushCheckState)
-
-    cmake_push_check_state()
-
-    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -stdlib=libc++")
-
-    check_cxx_source_compiles("
-        #include<type_traits>
-        int main() { return std::is_same<int, int>::value ? 0 : 1; }
-    " HAS_LIBCPP)
-
-    if(NOT HAS_LIBCPP)
-        message(WARNING "The option USE_LIBCPP is set (by default) but libc++ is not available. The flag will not be added to the target.")
-    endif()
-
-    cmake_pop_check_state()
-endif()
-
 #
 # Add EnTT target
 #
@@ -79,26 +51,6 @@ target_compile_definitions(
     INTERFACE $<$<AND:$<CONFIG:Debug>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:DEBUG>
     INTERFACE $<$<AND:$<CONFIG:Release>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:RELEASE>
 )
-
-if(USE_ASAN)
-    target_compile_options(EnTT INTERFACE $<$<AND:$<CONFIG:Debug>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-fsanitize=address -fno-omit-frame-pointer>)
-    target_link_libraries(EnTT INTERFACE $<$<AND:$<CONFIG:Debug>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-fsanitize=address -fno-omit-frame-pointer>)
-endif()
-
-if(USE_COMPILE_OPTIONS)
-    target_compile_options(
-        EnTT
-        INTERFACE $<$<AND:$<CONFIG:Debug>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-O0 -g>
-        # it seems that -O3 ruins a bit the performance when using clang ...
-        INTERFACE $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:Clang>>:-O2>
-        # ... on the other side, GCC is incredibly comfortable with it.
-        INTERFACE $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:GNU>>:-O3>
-    )
-endif()
-
-if(HAS_LIBCPP)
-    target_compile_options(EnTT BEFORE INTERFACE -stdlib=libc++)
-endif()
 
 target_compile_features(EnTT INTERFACE cxx_std_17)
 
